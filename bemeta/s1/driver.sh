@@ -1,4 +1,4 @@
 #!/bin/sh
 ./grompp.sh
-python writeBemeta.py
+python writeBemeta.py --grp npt.gro
 ./check.sh
