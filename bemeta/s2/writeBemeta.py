@@ -1,30 +1,52 @@
 import optparse
-
-def getPhiPsi(pdb_file):
-    fi= open(pdb_file)
-    index = []
+import numpy as np
+import sys
+def getPhiPsi(file, cyclic, gro):
+    fi= open(file)
+    index = {}
+    index["N"] = []
+    index["CA"] = []
+    index["C"] = []
     for line in fi:
+        if not gro and line[0:6].strip() != "ATOM":
+            continue
         if len(line) < 20:
             continue
-        line = line.split()
-        if line[1] in ["C", "N", "CA"]:
-            index.append(line[2])
+
+        if gro:
+            atomName = line[10:15].strip()
+            atomID = line[15:20].strip()
+        else:
+            atomID = line[6:11].strip()
+            atomName = line[12:16].strip()
+
+        if atomName in ["C", "N", "CA"]:
+            if index[atomName]:
+                index[atomName].append(atomID)
+            else:
+                index[atomName] = [atomID]
     fi.close()
 
-    index_Psi = index + [index[0]]
+    assert len(index["N"]) == len(index["CA"])
+    assert len(index["CA"]) == len(index["C"])
 
-    index_Phi = [index[-1]] + index
+    index_Psi = []
+    for i in range(len(index["N"]) -  int(not(cyclic))):
+        index_Psi.append(index["N"][i])
+        index_Psi.append(index["CA"][i])
+        index_Psi.append(index["C"][i])
+        index_Psi.append(index["N"][(i + 1) % len(index["N"])])
+
+    index_Phi = []
+    for i in range(int(not(cyclic)), len(index["N"])):
+        index_Phi.append(index["C"][(i - 1) % len(index["C"])])
+        index_Phi.append(index["N"][i])
+        index_Phi.append(index["CA"][i])
+        index_Phi.append(index["C"][i])
 
     assert len(index_Psi) == len(index_Psi)
 
-    Phi = []
-    Psi = []
-    for i in range(0, len(index_Psi), 3):
-        if i + 4 > len(index_Psi):
-            break
-        Phi.append(index_Phi[i:i + 4])
-        Psi.append(index_Psi[i:i + 4])
-    return Phi, Psi
+    return np.array(index_Phi).reshape((-1, 4)).tolist(), np.array(index_Psi).reshape((-1, 4)).tolist()
 
 def write_PhiPsi(Phi, Psi):
     with open("PhiPsi.ndx", "w+") as fo:
@@ -37,10 +59,10 @@ def write_PhiPsi(Phi, Psi):
             fo.write(",".join(Psi[j]))
             fo.write("\n")
 
-def write_bemeta(Phi, Psi, fileName):
+def write_bemeta(Phi, Psi, output):
     assert len(Psi) == len(Psi)
     numRes = len(Psi)
-    with open(fileName, "w+") as fo:
+    with open(output, "w+") as fo:
         rep_counter = 0
         cv_counter = 0
         fo.write("RANDOM_EXCHANGES\n\n")
@@ -72,22 +94,42 @@ def write_bemeta(Phi, Psi, fileName):
         fo.write("    GRID_MAX=@replicas:{%s}\n" % ",".join(grid_max))
         fo.write("    GRID_WFILE=BIAS_GRID\n    GRID_WSTRIDE=2000\n...\n")
         fo.write("\nPRINT ARG=@replicas:{%s} FILE=COLVAR STRIDE=500\n\nENDPLUMED" % ",".join(cv))
+
 if __name__ == "__main__":
+    print("\n!!!Test Version Use With Causion!!!\n")
     parser = optparse.OptionParser()
     parser.add_option('--gro', dest = 'gro', default = '')
     parser.add_option('--writeNDX', dest = 'writeNDX', default = 'False')
-    parser.add_option('--bemetaName', dest = 'fileName', default ='bemeta.dat')
+    parser.add_option('--bemetaName', dest = 'output', default = 'bemeta.dat')
+    parser.add_option('--cyclic', dest = 'cyclic', default = 'True')
+    parser.add_option('--pdb', dest = 'pdb', default = '')
     (options, args) = parser.parse_args()
-    gro = options.gro
-    fileName = options.fileName
+
+    gro = bool(options.gro)
+    pdb = bool(options.pdb)
+    if gro and pdb:
+        sys.exit("\nExiting...Both pdb and gro files declared...\n")
+
+    inputFile = ''
+    if gro:
+        inputFile = options.gro
+    else:
+        inputFile = options.pdb
+
+    output = options.output
     if options.writeNDX[0].upper() == 'F':
         writeNDX = False
     else:
         writeNDX = True
-    while not gro:
-        gro = input("Enter the name of the gro file:\n")
+    if options.cyclic[0].upper() == 'F':
+        cyclic = False
+    else:
+        cyclic = True
 
-    Phi, Psi = getPhiPsi(gro)
-    write_bemeta(Phi, Psi, fileName)
+    while not bool(inputFile):
+        inputFile = input("Enter the name of the structure file:\n")
+
+    Phi, Psi = getPhiPsi(inputFile, cyclic, gro)
+    write_bemeta(Phi, Psi, output)
     if writeNDX:
         write_PhiPsi(Phi, Psi)
