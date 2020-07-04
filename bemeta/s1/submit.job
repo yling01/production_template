@@ -1,0 +1,11 @@
+#!/bin/bash
+#SBATCH -p linlab
+#SBATCH -n NODENUMBER
+#SBATCH -J SYSTEMNAME
+#SBATCH -o runout.%j
+#SBATCH -e runerr.%j
+#SBATCH -t 7-00:00:00
+#SBATCH --export=ALL
+#SBATCH --mem-per-cpu=1G
+source ~/compute.sh
+mpiexec gmx_mpi mdrun -v -resethway -plumed bemeta -multi REPLICANUMBER -replex 2500 -s start -deffnm prod

@@ -1,0 +1,2 @@
+#!/bin/sh
+./genion.sh

@@ -1,0 +1,2 @@
+#!/bin/sh
+./solvate.sh

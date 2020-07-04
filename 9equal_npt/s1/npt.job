@@ -1,0 +1,12 @@
+#!/bin/bash
+#SBATCH -p m4
+#SBATCH --qos=yushan
+#SBATCH --account=yushan
+#SBATCH -J Initiate
+#SBATCH -o runout.%j
+#SBATCH -e runerr.%j
+#SBATCH -t 7-00:00:00
+#SBATCH --export=ALL
+#SBATCH --mem=0
+source ~/m4.sh
+gmx_mpi mdrun -v -s npt.tpr -deffnm npt &> mdrun.log
