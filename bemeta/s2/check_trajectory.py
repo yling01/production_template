@@ -11,7 +11,8 @@ def get_trajectory_files():
     trajectory_files = [i for i in all_files if i[-3:] == "xtc"]
     topology_files = [i for i in all_files if i[-3:] == "gro"]
 
-    return topology_files, trajectory_files.sort()
+    trajectory_files.sort()
+    return topology_files, trajectory_files
 
 def calculate_omega(u, start, stop, cyclic):
     u_protein = u.select_atoms('protein')
@@ -74,6 +75,18 @@ def calculate_chirality(u, start, stop):
                     chirality_temp[i] = "D"
             chirality = np.hstack((chirality, chirality_temp))
     return chirality[:, 1:]
+
+def write_frame_ndx(omega_mask, chirality_mask, file_name):
+    total_mask = omega_mask & chirality_mask
+    file_name = ".".join([file_name.split(".")[0], "ndx"])
+    counter = 0
+    with open(file_name, "w+") as fo:
+        fo.write("[ frame ]\n")
+        for i in total_mask:
+            counter += 1
+            if i:
+                fo.write("%d\n" % counter)
+
 
 def calculate_phi_psi(u, start, stop, cyclic):
     u_protein = u.select_atoms("protein")
@@ -144,12 +157,14 @@ if __name__ == "__main__":
             print("\n!!!Multiple Topology Files (.gro) Found!!!\n")
             print("!!!A Random One Will Be Used!!!\n")
         for trajectory_file in trajectory_files:
+            print("\nWorking on %s\n" % trajectory_file)
             u = mda.Universe(topology_files[0], trajectory_file)
             num_frame = len(u.trajectory)
-            omega_angles = calculate_omega(u, 0, num_frame)
+            omega_angles = calculate_omega(u, 0, num_frame, cyclic)
             chirality = calculate_chirality(u, 0, num_frame)
-            mask1 = pick_out_trans(omega_angles)
+            mask1 = pick_out_trans(omega_angles, cutoff)
             mask2 = pick_out_chirality(chirality, seq)
+            write_frame_ndx(mask1, mask2, trajectory_file)
             print("\n=> %s <=\n" % trajectory_file)
             print("%.1f%% of the frames have cis bond\n" % (len(np.argwhere(~mask1).flatten()) / num_frame * 100))
             print("%.1f%% of the frames have wrong chirality\n\n" % (len(np.argwhere(~mask2).flatten()) / num_frame * 100))

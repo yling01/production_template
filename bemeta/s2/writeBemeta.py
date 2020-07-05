@@ -44,23 +44,22 @@ def getPhiPsi(file, cyclic, gro):
         index_Phi.append(index["CA"][i])
         index_Phi.append(index["C"][i])
 
-    assert len(index_Psi) == len(index_Psi)
+    assert len(index_Phi) == len(index_Psi)
 
     return np.array(index_Phi).reshape((-1, 4)).tolist(), np.array(index_Psi).reshape((-1, 4)).tolist()
 
 def write_PhiPsi(Phi, Psi):
     with open("PhiPsi.ndx", "w+") as fo:
-        fo.write("[ Phi ]\n")
+        fo.write("[ PhiPsi ]\n")
         for i in range(len(Phi)):
-            fo.write(",".join(Phi[i]))
+            fo.write(" ".join(Phi[i]))
             fo.write("\n")
-        fo.write("[ Psi ]\n")
         for j in range(len(Psi)):
-            fo.write(",".join(Psi[j]))
+            fo.write(" ".join(Psi[j]))
             fo.write("\n")
 
 def write_bemeta(Phi, Psi, output):
-    assert len(Psi) == len(Psi)
+    assert len(Phi) == len(Psi)
     numRes = len(Psi)
     with open(output, "w+") as fo:
         rep_counter = 0
@@ -95,6 +94,11 @@ def write_bemeta(Phi, Psi, output):
         fo.write("    GRID_WFILE=BIAS_GRID\n    GRID_WSTRIDE=2000\n...\n")
         fo.write("\nPRINT ARG=@replicas:{%s} FILE=COLVAR STRIDE=500\n\nENDPLUMED" % ",".join(cv))
 
+def getArgument(arg):
+    if arg[0].upper() == "T":
+        return True
+    return False
+
 if __name__ == "__main__":
     print("\n!!!Test Version Use With Causion!!!\n")
     parser = optparse.OptionParser()
@@ -105,29 +109,20 @@ if __name__ == "__main__":
     parser.add_option('--pdb', dest = 'pdb', default = '')
     (options, args) = parser.parse_args()
 
-    gro = bool(options.gro)
-    pdb = bool(options.pdb)
     if gro and pdb:
         sys.exit("\nExiting...Both pdb and gro files declared...\n")
 
-    inputFile = ''
+    elif not gro and not pdb:
+        sys.exit("\nExiting...No pdb or gro file declared...\n")
+
     if gro:
         inputFile = options.gro
     else:
         inputFile = options.pdb
 
     output = options.output
-    if options.writeNDX[0].upper() == 'F':
-        writeNDX = False
-    else:
-        writeNDX = True
-    if options.cyclic[0].upper() == 'F':
-        cyclic = False
-    else:
-        cyclic = True
-
-    while not bool(inputFile):
-        inputFile = input("Enter the name of the structure file:\n")
+    writeNDX = getArgument(options.writeNDX)
+    cyclic = getArgument(options.cyclic)
 
     Phi, Psi = getPhiPsi(inputFile, cyclic, gro)
     write_bemeta(Phi, Psi, output)
