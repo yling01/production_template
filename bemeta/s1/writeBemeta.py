@@ -50,13 +50,12 @@ def getPhiPsi(file, cyclic, gro):
 
 def write_PhiPsi(Phi, Psi):
     with open("PhiPsi.ndx", "w+") as fo:
-        fo.write("[ Phi ]\n")
+        fo.write("[ PhiPsi ]\n")
         for i in range(len(Phi)):
-            fo.write(",".join(Phi[i]))
+            fo.write(" ".join(Phi[i]))
             fo.write("\n")
-        fo.write("[ Psi ]\n")
         for j in range(len(Psi)):
-            fo.write(",".join(Psi[j]))
+            fo.write(" ".join(Psi[j]))
             fo.write("\n")
 
 def write_bemeta(Phi, Psi, output):
