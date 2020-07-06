@@ -109,6 +109,9 @@ if __name__ == "__main__":
     parser.add_option('--pdb', dest = 'pdb', default = '')
     (options, args) = parser.parse_args()
 
+    gro = options.gro
+    pdb = options.pdb
+
     if gro and pdb:
         sys.exit("\nExiting...Both pdb and gro files declared...\n")
 
@@ -116,9 +119,9 @@ if __name__ == "__main__":
         sys.exit("\nExiting...No pdb or gro file declared...\n")
 
     if gro:
-        inputFile = options.gro
+        inputFile = gro
     else:
-        inputFile = options.pdb
+        inputFile = pdb
 
     output = options.output
     writeNDX = getArgument(options.writeNDX)

@@ -9,3 +9,5 @@
 #SBATCH --mem-per-cpu=1G
 source ~/compute.sh
 mpiexec gmx_mpi mdrun -v -resethway -plumed bemeta -multi REPLICANUMBER -replex 2500 -s start -deffnm prod
+source ~/m4.sh
+python check_trajectory.py --seq SYSTEMNAME
